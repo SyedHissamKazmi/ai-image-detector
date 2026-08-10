@@ -3,6 +3,10 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import os
 from app.api.schemas import AnalysisResponse
+from app.core.config import settings
+from app.core.logging_config import get_logger
+
+logger = get_logger("analyzer")
 
 class ImageAnalyzer:
     """Extracts metadata and (in future) runs ML detection."""

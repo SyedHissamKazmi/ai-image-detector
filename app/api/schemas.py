@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field
 
 class AnalysisResponse(BaseModel):
     filename: str
@@ -11,9 +11,11 @@ class AnalysisResponse(BaseModel):
     ai_probability: Optional[float] = None
     human_probability: Optional[float] = None
 
-    metadata_summary: Dict[str, str] = {}   # e.g., {"Make": "Canon"}
-    signals: List[str] = []                  # human-readable clues
+    metadata_summary: Dict[str, str] = Field(default_factory=dict)
+    signals: List[str] = Field(default_factory=list)
 
-    confidence: Optional[str] = None         # LOW / MEDIUM / HIGH
+    confidence: Optional[str] = None
+
+    dominant_colors: List[str] = Field(default_factory=list)
 
     note: str
