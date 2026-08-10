@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from app.core.logging_config import configure_logging
 from app.api.routes import router as analyze_router
 
+configure_logging()
 
 app = FastAPI(
     title="AI Image Detector",
