@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Environment
+.venv/
+.env
+
+# Uploaded images (keep folder but not contents)
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Models (future)
+models/*
+!models/.gitkeep
+
+# IDE
+.vscode/
+.pytest_cache/
