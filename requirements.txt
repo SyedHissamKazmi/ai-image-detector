@@ -5,3 +5,6 @@ pydantic-settings
 pillow
 python-dotenv
 transformers
+timm
+safetensors
+huggingface_hub
