@@ -19,7 +19,7 @@ class AIDetector:
     download are unavailable.
     """
 
-    MODEL_NAME = "capcheck/ai-human-generated-image-detection"
+    MODEL_NAME = "Ateeqq/ai-vs-human-image-detector"
 
     AI_LABELS = {
         "ai-generated",
