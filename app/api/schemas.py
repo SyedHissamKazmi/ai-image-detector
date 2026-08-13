@@ -18,4 +18,6 @@ class AnalysisResponse(BaseModel):
 
     dominant_colors: List[str] = Field(default_factory=list)
 
+    model_predictions: Dict[str, float] = Field(default_factory=dict)
+
     note: str

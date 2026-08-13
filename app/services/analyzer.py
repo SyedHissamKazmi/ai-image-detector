@@ -77,8 +77,11 @@ class ImageAnalyzer:
         human_probability: Optional[float] = None
         confidence: Optional[str] = None
 
+        model_predictions: Dict[str, float] = {}
         try:
-            ai_probability = detector.predict(file_path)
+            detailed = detector.predict_detailed(file_path)
+            ai_probability = detailed.get("ensemble")
+            model_predictions = detailed.get("models", {})
         except Exception as exc:
             # Extra safety: detector failures must never break the
             # existing metadata/colour analysis.
@@ -88,6 +91,7 @@ class ImageAnalyzer:
                 exc,
             )
             ai_probability = None
+            model_predictions = {}
 
         if ai_probability is not None:
             human_probability = 1.0 - ai_probability
@@ -133,6 +137,7 @@ class ImageAnalyzer:
             metadata_summary=metadata,
             signals=signals,
             confidence=confidence,
+            model_predictions=model_predictions,
             dominant_colors=dominant_colors,
             note=note,
         )

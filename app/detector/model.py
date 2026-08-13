@@ -67,3 +67,57 @@ class AIDetector:
         )
 
         return ensemble
+
+    def predict_detailed(self, image_path: str | Path) -> dict:
+        """
+        Return ensemble probability and individual model predictions.
+        """
+        path = Path(image_path)
+        result = {
+            "ensemble": None,
+            "models": {}
+        }
+
+        probabilities = []
+        weights = []
+        model_results = {}
+
+        # Ateeqq
+        try:
+            p1 = self._ateeq.predict(path)
+            if p1 is not None:
+                probabilities.append(p1)
+                weights.append(self.ATEQQ_WEIGHT)
+                model_results["ateeq"] = p1
+        except Exception as exc:
+            logger.warning("Ateeq detector failed: %s", exc)
+
+        # wkaandemir
+        try:
+            p2 = self._wkaandemir.predict(path)
+            if p2 is not None:
+                probabilities.append(p2)
+                weights.append(self.WKAANDEMIR_WEIGHT)
+                model_results["wkaandemir"] = p2
+        except Exception as exc:
+            logger.warning("wkaandemir detector failed: %s", exc)
+
+        if not probabilities:
+            result["ensemble"] = None
+        else:
+            total_weight = sum(weights)
+            if total_weight == 0:
+                ensemble = sum(probabilities) / len(probabilities)
+            else:
+                ensemble = sum(p * w for p, w in zip(probabilities, weights)) / total_weight
+            result["ensemble"] = max(0.0, min(1.0, ensemble))
+
+        result["models"] = model_results
+        logger.info(
+            "ML_ENSEMBLE_DETAILED | file=%s | ensemble=%.4f | models=%s",
+            path.name,
+            result["ensemble"] if result["ensemble"] is not None else -1,
+            model_results,
+        )
+        return result
+    
