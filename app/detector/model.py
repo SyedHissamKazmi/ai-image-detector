@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from app.core.logging_config import get_logger
 from app.detector.ateeq_detector import AteeqDetector
 from app.detector.wkaandemir_detector import WkaandemirDetector
-
-import asyncio
 
 logger = get_logger("detector.ensemble")
 
@@ -25,13 +24,15 @@ class AIDetector:
     def available(self) -> bool:
         return self._ateeq.available or self._wkaandemir.available
 
+    # ------------------------------------------------------------
+    # Synchronous predict (kept for backward compatibility / tests)
+    # ------------------------------------------------------------
     def predict(self, image_path: str | Path) -> float | None:
         path = Path(image_path)
 
         probabilities = []
         weights = []
 
-        # Run each model independently
         try:
             p1 = self._ateeq.predict(path)
             if p1 is not None:
@@ -52,7 +53,6 @@ class AIDetector:
             logger.warning("ML_ENSEMBLE_UNAVAILABLE | file=%s", path.name)
             return None
 
-        # Weighted average
         total_weight = sum(weights)
         if total_weight == 0:
             ensemble = sum(probabilities) / len(probabilities)
@@ -70,21 +70,16 @@ class AIDetector:
 
         return ensemble
 
+    # ------------------------------------------------------------
+    # Detailed synchronous predict (returns per‑model probabilities)
+    # ------------------------------------------------------------
     def predict_detailed(self, image_path: str | Path) -> dict:
-        """
-        Return ensemble probability and individual model predictions.
-        """
         path = Path(image_path)
-        result = {
-            "ensemble": None,
-            "models": {}
-        }
 
+        model_results = {}
         probabilities = []
         weights = []
-        model_results = {}
 
-        # Ateeqq
         try:
             p1 = self._ateeq.predict(path)
             if p1 is not None:
@@ -94,7 +89,6 @@ class AIDetector:
         except Exception as exc:
             logger.warning("Ateeq detector failed: %s", exc)
 
-        # wkaandemir
         try:
             p2 = self._wkaandemir.predict(path)
             if p2 is not None:
@@ -105,58 +99,65 @@ class AIDetector:
             logger.warning("wkaandemir detector failed: %s", exc)
 
         if not probabilities:
-            result["ensemble"] = None
+            ensemble = None
         else:
             total_weight = sum(weights)
             if total_weight == 0:
                 ensemble = sum(probabilities) / len(probabilities)
             else:
                 ensemble = sum(p * w for p, w in zip(probabilities, weights)) / total_weight
-            result["ensemble"] = max(0.0, min(1.0, ensemble))
+            ensemble = max(0.0, min(1.0, ensemble))
 
-        result["models"] = model_results
         logger.info(
             "ML_ENSEMBLE_DETAILED | file=%s | ensemble=%.4f | models=%s",
             path.name,
-            result["ensemble"] if result["ensemble"] is not None else -1,
+            ensemble if ensemble is not None else -1,
             model_results,
         )
-        return result
 
-        async def predict_detailed_async(self, image_path: str | Path) -> dict:
-            """
-            Asynchronously run both detectors concurrently in separate threads.
-            Returns the same shape as predict_detailed.
-            """
-            path = Path(image_path)
+        return {"ensemble": ensemble, "models": model_results}
 
-            # Run both models in threadpool concurrently
-            ateeq_task = asyncio.to_thread(self._ateeq.predict, path)
-            wkaandemir_task = asyncio.to_thread(self._wkaandemir.predict, path)
+    # ------------------------------------------------------------
+    # Asynchronous predict detailed (runs both models concurrently)
+    # ------------------------------------------------------------
+    async def predict_detailed_async(self, image_path: str | Path) -> dict:
+        path = Path(image_path)
 
-            p1, p2 = await asyncio.gather(ateeq_task, wkaandemir_task)
+        # Run both models in threadpool concurrently
+        ateeq_task = asyncio.to_thread(self._ateeq.predict, path)
+        wkaandemir_task = asyncio.to_thread(self._wkaandemir.predict, path)
 
-            model_results = {}
-            predictions = []
+        p1, p2 = await asyncio.gather(ateeq_task, wkaandemir_task)
 
-            if p1 is not None:
-                model_results["ateeq"] = p1
-                predictions.append(Prediction(model_name="ateeq", ai_probability=p1))
+        model_results = {}
+        probabilities = []
+        weights = []
 
-            if p2 is not None:
-                model_results["wkaandemir"] = p2
-                predictions.append(Prediction(model_name="wkaandemir", ai_probability=p2))
+        if p1 is not None:
+            model_results["ateeq"] = p1
+            probabilities.append(p1)
+            weights.append(self.ATEQQ_WEIGHT)
 
-            if not predictions:
-                ensemble = None
+        if p2 is not None:
+            model_results["wkaandemir"] = p2
+            probabilities.append(p2)
+            weights.append(self.WKAANDEMIR_WEIGHT)
+
+        if not probabilities:
+            ensemble = None
+        else:
+            total_weight = sum(weights)
+            if total_weight == 0:
+                ensemble = sum(probabilities) / len(probabilities)
             else:
-                ensemble = self._combine_predictions(predictions)
+                ensemble = sum(p * w for p, w in zip(probabilities, weights)) / total_weight
+            ensemble = max(0.0, min(1.0, ensemble))
 
-            logger.info(
-                "ML_ENSEMBLE_DETAILED_ASYNC | file=%s | ensemble=%.4f | models=%s",
-                path.name,
-                ensemble if ensemble is not None else -1,
-                model_results,
-            )
+        logger.info(
+            "ML_ENSEMBLE_DETAILED_ASYNC | file=%s | ensemble=%.4f | models=%s",
+            path.name,
+            ensemble if ensemble is not None else -1,
+            model_results,
+        )
 
-            return {"ensemble": ensemble, "models": model_results}
+        return {"ensemble": ensemble, "models": model_results}
