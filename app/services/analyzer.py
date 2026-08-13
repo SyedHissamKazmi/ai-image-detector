@@ -102,9 +102,9 @@ class ImageAnalyzer:
 
             # Required ML signals.
             if ai_probability > 0.8:
-                signals.append("ML detector: strong AI signal")
+                signals.append("ML ensemble: strong AI signal")
             elif 0.4 < ai_probability < 0.6:
-                signals.append("ML detector: uncertain")
+                signals.append("ML ensemble: uncertain")
 
             note = (
                 "Image analyzed. This result is probabilistic and should "
@@ -112,7 +112,7 @@ class ImageAnalyzer:
             )
 
         else:
-            signals.append("ML detector: unavailable")
+            signals.append("ML ensemble: unavailable")
 
             note = (
                 "Image analyzed successfully, but ML detection was "
