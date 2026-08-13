@@ -34,10 +34,10 @@ def test_analyze_with_mock_detector(client, monkeypatch):
     This avoids model loading and runs quickly.
     """
 
-    # Create a fake detector that always returns 0.75 AI probability.
+    # Create a fake detector that always returns 0.5 AI probability.
     class MockDetector:
-        def predict(self, image_path):
-            return 0.5
+        async def predict_detailed_async(self, image_path):
+            return {"ensemble": 0.5, "models": {"mock": 0.5}}
 
     # Replace the real detector in the analyzer module with our mock.
     monkeypatch.setattr(analyzer, "detector", MockDetector())
@@ -53,10 +53,9 @@ def test_analyze_with_mock_detector(client, monkeypatch):
 
     assert data["ai_probability"] == 0.5
     assert data["human_probability"] == 0.5
-    assert data["confidence"] == "Low"
+    assert data["confidence"] == "LOW"
 
     assert "ML ensemble: uncertain" in data["signals"]
     assert "ML ensemble: strong AI signal" not in data["signals"]
 
-    assert data["signals"] == []
     assert data["dominant_colors"]

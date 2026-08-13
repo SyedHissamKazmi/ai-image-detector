@@ -21,7 +21,128 @@ detector = AIDetector()
 
 class ImageAnalyzer:
 
-    def analyze(
+    # def analyze(
+    #     self,
+    #     image: Image.Image,
+    #     filename: str,
+    #     file_path: str | Path,
+    #     metadata_summary: Optional[Dict[str, str]] = None,
+    #     resized: bool = False,
+    # ) -> AnalysisResponse:
+
+    #     width, height = image.size
+
+    #     # ---------------------------------------------------------
+    #     # File size
+    #     # ---------------------------------------------------------
+    #     try:
+    #         file_size = Path(file_path).stat().st_size
+    #     except (FileNotFoundError, PermissionError, OSError) as exc:
+    #         logger.warning(
+    #             "FILE_SIZE_FAILED | filename=%s | error=%s",
+    #             filename,
+    #             exc,
+    #         )
+    #         file_size = 0
+
+    #     # ---------------------------------------------------------
+    #     # Metadata
+    #     # ---------------------------------------------------------
+    #     metadata = (
+    #         metadata_summary
+    #         if metadata_summary is not None
+    #         else self.extract_metadata(image)
+    #     )
+
+    #     # ---------------------------------------------------------
+    #     # Dominant colours
+    #     # ---------------------------------------------------------
+    #     dominant_colors = self.extract_dominant_colors(image)
+
+    #     # ---------------------------------------------------------
+    #     # Existing signals
+    #     # ---------------------------------------------------------
+    #     signals: List[str] = []
+
+    #     if resized:
+    #         signals.append(
+    #             f"Image resized to fit within "
+    #             f"{settings.MAX_IMAGE_DIMENSION}px."
+    #         )
+
+    #     # ---------------------------------------------------------
+    #     # AI detector
+    #     # ---------------------------------------------------------
+    #     ai_probability: Optional[float] = None
+    #     human_probability: Optional[float] = None
+    #     confidence: Optional[str] = None
+
+    #     model_predictions: Dict[str, float] = {}
+    #     try:
+    #         detailed = detector.predict_detailed(file_path)
+    #         ai_probability = detailed.get("ensemble")
+    #         model_predictions = detailed.get("models", {})
+    #     except Exception as exc:
+    #         # Extra safety: detector failures must never break the
+    #         # existing metadata/colour analysis.
+    #         logger.warning(
+    #             "ML_ANALYSIS_FAILED | filename=%s | error=%s",
+    #             filename,
+    #             exc,
+    #         )
+    #         ai_probability = None
+    #         model_predictions = {}
+
+    #     if ai_probability is not None:
+    #         human_probability = 1.0 - ai_probability
+
+    #         # Required confidence thresholds.
+    #         if ai_probability < 0.6:
+    #             confidence = "LOW"
+    #         elif ai_probability <= 0.8:
+    #             confidence = "MEDIUM"
+    #         else:
+    #             confidence = "HIGH"
+
+    #         # Required ML signals.
+    #         if ai_probability > 0.8:
+    #             signals.append("ML ensemble: strong AI signal")
+    #         elif 0.4 < ai_probability < 0.6:
+    #             signals.append("ML ensemble: uncertain")
+
+    #         note = (
+    #             "Image analyzed. This result is probabilistic and should "
+    #             "not be treated as definitive proof."
+    #         )
+
+    #     else:
+    #         signals.append("ML ensemble: unavailable")
+
+    #         note = (
+    #             "Image analyzed successfully, but ML detection was "
+    #             "skipped because the AI detector is unavailable."
+    #         )
+
+    #     # ---------------------------------------------------------
+    #     # Final response
+    #     # ---------------------------------------------------------
+    #     return AnalysisResponse(
+    #         filename=filename,
+    #         format=image.format or "UNKNOWN",
+    #         width=width,
+    #         height=height,
+    #         file_size_bytes=file_size,
+    #         ai_probability=ai_probability,
+    #         human_probability=human_probability,
+    #         metadata_summary=metadata,
+    #         signals=signals,
+    #         confidence=confidence,
+    #         model_predictions=model_predictions,
+    #         dominant_colors=dominant_colors,
+    #         note=note,
+    #     )
+
+    async def analyze_async(
         self,
         image: Image.Image,
         filename: str,
@@ -32,71 +153,40 @@ class ImageAnalyzer:
 
         width, height = image.size
 
-        # ---------------------------------------------------------
         # File size
-        # ---------------------------------------------------------
         try:
             file_size = Path(file_path).stat().st_size
         except (FileNotFoundError, PermissionError, OSError) as exc:
-            logger.warning(
-                "FILE_SIZE_FAILED | filename=%s | error=%s",
-                filename,
-                exc,
-            )
+            logger.warning("FILE_SIZE_FAILED | filename=%s | error=%s", filename, exc)
             file_size = 0
 
-        # ---------------------------------------------------------
         # Metadata
-        # ---------------------------------------------------------
-        metadata = (
-            metadata_summary
-            if metadata_summary is not None
-            else self.extract_metadata(image)
-        )
+        metadata = metadata_summary if metadata_summary is not None else self.extract_metadata(image)
 
-        # ---------------------------------------------------------
         # Dominant colours
-        # ---------------------------------------------------------
         dominant_colors = self.extract_dominant_colors(image)
 
-        # ---------------------------------------------------------
-        # Existing signals
-        # ---------------------------------------------------------
         signals: List[str] = []
-
         if resized:
-            signals.append(
-                f"Image resized to fit within "
-                f"{settings.MAX_IMAGE_DIMENSION}px."
-            )
+            signals.append(f"Image resized to fit within {settings.MAX_IMAGE_DIMENSION}px.")
 
-        # ---------------------------------------------------------
-        # AI detector
-        # ---------------------------------------------------------
         ai_probability: Optional[float] = None
         human_probability: Optional[float] = None
         confidence: Optional[str] = None
-
         model_predictions: Dict[str, float] = {}
+
         try:
-            detailed = detector.predict_detailed(file_path)
+            detailed = await detector.predict_detailed_async(file_path)
             ai_probability = detailed.get("ensemble")
             model_predictions = detailed.get("models", {})
         except Exception as exc:
-            # Extra safety: detector failures must never break the
-            # existing metadata/colour analysis.
-            logger.warning(
-                "ML_ANALYSIS_FAILED | filename=%s | error=%s",
-                filename,
-                exc,
-            )
+            logger.warning("ML_ANALYSIS_FAILED | filename=%s | error=%s", filename, exc)
             ai_probability = None
             model_predictions = {}
 
         if ai_probability is not None:
             human_probability = 1.0 - ai_probability
 
-            # Required confidence thresholds.
             if ai_probability < 0.6:
                 confidence = "LOW"
             elif ai_probability <= 0.8:
@@ -104,7 +194,6 @@ class ImageAnalyzer:
             else:
                 confidence = "HIGH"
 
-            # Required ML signals.
             if ai_probability > 0.8:
                 signals.append("ML ensemble: strong AI signal")
             elif 0.4 < ai_probability < 0.6:
@@ -114,18 +203,13 @@ class ImageAnalyzer:
                 "Image analyzed. This result is probabilistic and should "
                 "not be treated as definitive proof."
             )
-
         else:
             signals.append("ML ensemble: unavailable")
-
             note = (
                 "Image analyzed successfully, but ML detection was "
                 "skipped because the AI detector is unavailable."
             )
 
-        # ---------------------------------------------------------
-        # Final response
-        # ---------------------------------------------------------
         return AnalysisResponse(
             filename=filename,
             format=image.format or "UNKNOWN",
@@ -137,8 +221,8 @@ class ImageAnalyzer:
             metadata_summary=metadata,
             signals=signals,
             confidence=confidence,
-            model_predictions=model_predictions,
             dominant_colors=dominant_colors,
+            model_predictions=model_predictions,
             note=note,
         )
 

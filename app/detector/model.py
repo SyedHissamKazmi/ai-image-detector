@@ -6,6 +6,8 @@ from app.core.logging_config import get_logger
 from app.detector.ateeq_detector import AteeqDetector
 from app.detector.wkaandemir_detector import WkaandemirDetector
 
+import asyncio
+
 logger = get_logger("detector.ensemble")
 
 
@@ -120,4 +122,41 @@ class AIDetector:
             model_results,
         )
         return result
-    
+
+        async def predict_detailed_async(self, image_path: str | Path) -> dict:
+            """
+            Asynchronously run both detectors concurrently in separate threads.
+            Returns the same shape as predict_detailed.
+            """
+            path = Path(image_path)
+
+            # Run both models in threadpool concurrently
+            ateeq_task = asyncio.to_thread(self._ateeq.predict, path)
+            wkaandemir_task = asyncio.to_thread(self._wkaandemir.predict, path)
+
+            p1, p2 = await asyncio.gather(ateeq_task, wkaandemir_task)
+
+            model_results = {}
+            predictions = []
+
+            if p1 is not None:
+                model_results["ateeq"] = p1
+                predictions.append(Prediction(model_name="ateeq", ai_probability=p1))
+
+            if p2 is not None:
+                model_results["wkaandemir"] = p2
+                predictions.append(Prediction(model_name="wkaandemir", ai_probability=p2))
+
+            if not predictions:
+                ensemble = None
+            else:
+                ensemble = self._combine_predictions(predictions)
+
+            logger.info(
+                "ML_ENSEMBLE_DETAILED_ASYNC | file=%s | ensemble=%.4f | models=%s",
+                path.name,
+                ensemble if ensemble is not None else -1,
+                model_results,
+            )
+
+            return {"ensemble": ensemble, "models": model_results}

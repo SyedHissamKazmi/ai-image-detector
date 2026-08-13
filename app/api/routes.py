@@ -153,7 +153,7 @@ async def analyze_image(
             processed_image = image
 
         try:
-            result = analyzer.analyze(
+            result = await analyzer.analyze_async(
                 image=processed_image,
                 filename=filename,
                 file_path=saved_path,
