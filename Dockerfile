@@ -25,5 +25,5 @@ ENV HF_HUB_DISABLE_SYMLINKS_WARNING=1
 # Expose the port Render expects (usually 10000 or can use $PORT)
 EXPOSE 10000
 
-# Run the FastAPI app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Run the app, using PORT env if available
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
