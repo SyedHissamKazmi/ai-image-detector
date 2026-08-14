@@ -97,6 +97,10 @@ ai-image-detector/
 
 ![AI Image Detector Frontend](docs/frontend_screenshot.png)
 
+## 🎬 Demo
+
+![AI Image Detector Demo](docs/demo.mp4)
+
 ## 📊 Evaluation
 
 Evaluated on a small validation set (32 images).
