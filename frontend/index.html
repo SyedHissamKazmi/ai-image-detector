@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Syed Hissam Kazmi">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Image Authenticity Detector – Analyze whether an image is likely AI-generated or human-created.">
+    <title>ImageGuard – AI Authenticity Detector</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="/" class="brand" aria-label="ImageGuard home">
+                <div class="brand-icon" aria-hidden="true">AI</div>
+                <div>
+                    <span class="brand-title">ImageGuard</span>
+                    <span class="brand-subtitle">AI Authenticity Detector</span>
+                </div>
+            </a>
+            <div class="status-indicator">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span>API Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-badge"><span aria-hidden="true">✦</span> AI IMAGE FORENSICS — by Syed Hissam Kazmi</div>
+            <h1>Is this image <span>AI-generated?</span></h1>
+            <p>Upload an image and analyze its visual signals, metadata, and machine-learning predictions in seconds.</p>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="upload-section" aria-label="Image upload">
+            <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload an image">
+                <input id="fileInput" type="file" accept="image/*" hidden>
+                <div id="uploadContent" class="upload-content">
+                    <div class="upload-icon" aria-hidden="true">↑</div>
+                    <h2>Drop your image here</h2>
+                    <p>or <button type="button" id="browseButton" class="browse-button">browse files</button></p>
+                    <span class="upload-hint">JPG, JPEG, PNG, WEBP • Max 10 MB</span>
+                </div>
+                <div id="previewContainer" class="preview-container hidden">
+                    <img id="imagePreview" src="" alt="Selected image preview">
+                    <div class="preview-info">
+                        <strong id="fileName"></strong>
+                        <span id="fileSize"></span>
+                    </div>
+                    <button type="button" id="removeButton" class="remove-button" aria-label="Remove selected image">×</button>
+                </div>
+                <div id="dropOverlay" class="drop-overlay hidden" aria-hidden="true">
+                    <span>Drop to upload</span>
+                </div>
+            </div>
+
+            <button id="analyzeButton" class="analyze-button" type="button" disabled>
+                <span id="buttonText">Analyze Image</span>
+                <span id="loadingSpinner" class="spinner hidden" aria-hidden="true"></span>
+            </button>
+
+            <div id="errorMessage" class="error-message hidden" role="alert"></div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results" class="results hidden" aria-live="polite">
+            <div class="results-heading">
+                <div>
+                    <span class="section-label">ANALYSIS COMPLETE</span>
+                    <h2>Authenticity Report</h2>
+                </div>
+                <button id="newAnalysisButton" class="secondary-button" type="button">+ New Analysis</button>
+            </div>
+
+            <div class="result-grid">
+                <article class="card probability-card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-label">AI PROBABILITY</span>
+                            <h3>Likelihood of AI generation</h3>
+                        </div>
+                        <span id="confidenceBadge" class="confidence-badge">—</span>
+                    </div>
+                    <div class="gauge-container">
+                        <div id="probabilityRing" class="probability-ring">
+                            <div class="ring-inner">
+                                <strong id="aiProbability">—</strong>
+                                <span>AI probability</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="probability-scale">
+                        <div><span class="scale-dot real"></span> Likely human</div>
+                        <div><span class="scale-dot uncertain"></span> Uncertain</div>
+                        <div><span class="scale-dot ai"></span> Likely AI</div>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-label">IMAGE INFORMATION</span>
+                            <h3>File details</h3>
+                        </div>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item"><span>Filename</span><strong id="resultFilename">—</strong></div>
+                        <div class="info-item"><span>Format</span><strong id="resultFormat">—</strong></div>
+                        <div class="info-item"><span>Dimensions</span><strong id="resultDimensions">—</strong></div>
+                        <div class="info-item"><span>File size</span><strong id="resultFileSize">—</strong></div>
+                    </div>
+                </article>
+            </div>
+
+            <article class="card">
+                <div class="card-header">
+                    <div><span class="card-label">MACHINE LEARNING</span><h3>Model predictions</h3></div>
+                </div>
+                <div id="modelPredictions" class="model-grid"></div>
+            </article>
+
+            <div class="two-column-grid">
+                <article class="card">
+                    <div class="card-header">
+                        <div><span class="card-label">DETECTION SIGNALS</span><h3>What the system found</h3></div>
+                    </div>
+                    <div id="signalsList" class="signals-list"></div>
+                </article>
+                <article class="card">
+                    <div class="card-header">
+                        <div><span class="card-label">METADATA</span><h3>Image metadata</h3></div>
+                    </div>
+                    <div id="metadataList" class="metadata-list"></div>
+                </article>
+            </div>
+
+            <article class="card">
+                <div class="card-header">
+                    <div><span class="card-label">VISUAL ANALYSIS</span><h3>Dominant colours</h3></div>
+                </div>
+                <div id="colorSwatches" class="color-swatches"></div>
+            </article>
+
+            <article class="card probability-summary">
+                <div class="summary-row">
+                    <div>
+                        <span class="card-label">HUMAN PROBABILITY</span>
+                        <h3 id="humanProbability">—</h3>
+                    </div>
+                    <div class="human-bar-container">
+                        <div id="humanBar" class="human-bar"></div>
+                    </div>
+                </div>
+            </article>
+
+            <aside class="disclaimer">
+                <div class="disclaimer-icon" aria-hidden="true">i</div>
+                <div>
+                    <strong>Important:</strong>
+                    <p id="resultNote">Results are probabilistic and should not be treated as definitive proof of image origin.</p>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-left">
+                <span>ImageGuard</span>
+                <span>AI Image Authenticity Analysis</span>
+            </div>
+            <div class="footer-right">
+                <span>Created by <a href="https://github.com/SyedHissamKazmi" target="_blank" rel="noopener">Syed Hissam Kazmi</a></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -192,3 +192,10 @@ This project is for educational purposes. The AI predictions should be used resp
 ---
 
 *Note: Both model weights are cached in `~/.cache/huggingface/` and consume ~715 MB total. CPU inference takes a few seconds per image.*
+
+## 👤 Author
+
+Created by **Syed Hissam Kazmi**
+
+- GitHub: [SyedHissamKazmi](https://github.com/SyedHissamKazmi)
+- Project: [ai-image-detector](https://github.com/SyedHissamKazmi/ai-image-detector)
