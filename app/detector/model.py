@@ -13,8 +13,8 @@ logger = get_logger("detector.ensemble")
 class AIDetector:
     """Ensemble of Ateeq + wkaandemir detectors."""
 
-    ATEQQ_WEIGHT = 0.50
-    WKAANDEMIR_WEIGHT = 0.50
+    ATEQQ_WEIGHT = 0.47
+    WKAANDEMIR_WEIGHT = 0.53
 
     def __init__(self) -> None:
         self._ateeq = AteeqDetector()

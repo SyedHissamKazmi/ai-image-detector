@@ -7,8 +7,13 @@ __pycache__/
 .env
 
 # Uploaded images (keep folder but not contents)
+evaluation/ai/*
+!evaluation/ai/.gitkeep
+evaluation/real/*
+!evaluation/real/.gitkeep
 uploads/*
 !uploads/.gitkeep
+evaluation_results.csv
 
 # Logs
 logs/*

@@ -37,8 +37,8 @@ def test_ensemble_weighted_average(tmp_path):
     detector._wkaandemir = MockDetector(0.7)
 
     result = detector.predict("dummy_path")
-    # Equal weights => (0.9 + 0.7)/2 = 0.8
-    assert result == 0.8
+    # Weighted average => (0.9 * 0.47 + 0.7 * 0.53) / (0.47 + 0.53) = 0.794
+    assert result == 0.794
 
 
 def test_ensemble_none_when_all_unavailable(tmp_path):
