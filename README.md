@@ -93,6 +93,21 @@ ai-image-detector/
 ```
 
 ---
+## 📸 Screenshot
+
+![AI Image Detector Frontend](docs/frontend_screenshot.png)
+
+## 📊 Evaluation
+
+Evaluated on a small validation set (32 images).
+
+| Model | Accuracy | Precision | Recall | F1 Score |
+|-------|----------|-----------|--------|----------|
+| Ateeqq | 0.719 | 0.800 | 0.762 | 0.780 |
+| wkaandemir | 0.781 | 0.792 | 0.905 | 0.844 |
+| **Tuned Ensemble (0.47/0.53)** | **0.844** | **0.833** | **0.952** | **0.889** |
+
+*The ensemble weights were tuned using grid search on the validation set.*
 
 ## 🚀 Quick Start (Local Development)
 
