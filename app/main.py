@@ -1,28 +1,35 @@
-from fastapi import FastAPI
-from app.core.logging_config import configure_logging
-from app.api.routes import router as analyze_router
+from pathlib import Path
 
-configure_logging()
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.api.routes import router
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(
-    title="AI Image Detector",
-    description="Detect whether an image is likely AI-generated or human-created.",
-    version="0.1.0",
+    title="AI Image Authenticity Detector",
+    description="AI-generated image authenticity analysis API",
+    version="1.0.0",
 )
 
-app.include_router(analyze_router)
+app.include_router(router)
 
-@app.get("/")
-def root():
-    return {
-        "project": "AI Image Detector",
-        "status": "running",
-        "version": "0.1.0",
-    }
+# Serve static files with a short cache for performance
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_DIR),
+    name="static",
+)
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.get("/health")
-def health():
-    return {
-        "status": "healthy"
-    }
+async def health():
+    return {"status": "healthy"}
