@@ -4,7 +4,7 @@ import tempfile
 import streamlit as st
 from PIL import Image
 
-# Uncomment the next line if Streamlit Cloud runs out of memory.
+# Uncomment if Streamlit Cloud runs out of memory.
 # os.environ.setdefault("ONLY_MODEL", "wkaandemir")
 
 from app.detector.model import AIDetector
@@ -68,7 +68,7 @@ CUSTOM_CSS = """
     }
 
     .metric-value {
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 800;
         color: #ffffff;
         margin-top: 5px;
@@ -109,7 +109,6 @@ CUSTOM_CSS = """
     .model-prob {
         color: #9b91ff;
         font-weight: 800;
-        float: right;
     }
 
     .swatch-container {
@@ -131,16 +130,70 @@ CUSTOM_CSS = """
         text-align: center;
         margin-top: 20px;
     }
+
+    .file-info {
+        color: #a6afc0;
+        font-size: 14px;
+    }
 </style>
 """
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
+# --------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------
 @st.cache_resource
 def load_detector():
     """Load the ensemble detector once and cache it."""
     return AIDetector()
+
+
+def extract_dominant_colors(image: Image.Image, count: int = 3) -> list[str]:
+    """Return top dominant colours as hex strings."""
+    try:
+        sample = image.copy()
+        sample.thumbnail((128, 128), Image.Resampling.BILINEAR)
+        sample = sample.convert("RGB")
+        sample = sample.quantize(colors=max(count, 3), method=Image.Quantize.MEDIANCUT)
+        palette = sample.getpalette()
+        color_counts = sample.getcolors()
+
+        if not palette or not color_counts:
+            return []
+
+        color_counts.sort(reverse=True)
+        colors = []
+
+        for pixel_count, palette_index in color_counts[:count]:
+            base = palette_index * 3
+            if base + 2 >= len(palette):
+                continue
+            r, g, b = palette[base], palette[base + 1], palette[base + 2]
+            colors.append(f"#{r:02X}{g:02X}{b:02X}")
+
+        return colors
+    except Exception:
+        return []
+
+
+def get_confidence(prob: float) -> str:
+    if prob < 0.6:
+        return "LOW"
+    elif prob <= 0.8:
+        return "MEDIUM"
+    else:
+        return "HIGH"
+
+
+def get_signals(prob: float) -> list[str]:
+    signals = []
+    if prob > 0.8:
+        signals.append("ML ensemble: strong AI signal")
+    elif 0.4 < prob < 0.6:
+        signals.append("ML ensemble: uncertain")
+    return signals
 
 
 # --------------------------------------------------------------------
@@ -164,8 +217,30 @@ except Exception:
     st.error("Could not open the image. Please upload a valid image file.")
     st.stop()
 
+# --------------------------------------------------------------------
+# Preview and file information
+# --------------------------------------------------------------------
 st.image(image, use_container_width=True, caption="Uploaded Image")
 
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="metric-label">Image Information</div>', unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown('<div class="file-info">Filename</div>', unsafe_allow_html=True)
+    st.markdown(f"**{uploaded_file.name}**")
+with col2:
+    st.markdown('<div class="file-info">Format</div>', unsafe_allow_html=True)
+    st.markdown(f"**{image.format}**")
+with col3:
+    st.markdown('<div class="file-info">Dimensions</div>', unsafe_allow_html=True)
+    st.markdown(f"**{image.width} × {image.height}**")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# --------------------------------------------------------------------
+# Analyze
+# --------------------------------------------------------------------
 if not st.button("🔍 Analyze Image", use_container_width=True):
     st.stop()
 
@@ -184,10 +259,12 @@ if result is None or result.get("ensemble") is None:
 
 ai_prob = result["ensemble"]
 human_prob = 1.0 - ai_prob
-confidence = result.get("confidence")
+confidence = get_confidence(ai_prob)
+signals = get_signals(ai_prob)
+models = result.get("models", {})
 
 # --------------------------------------------------------------------
-# Main result card
+# Main result cards
 # --------------------------------------------------------------------
 st.markdown('<div class="card">', unsafe_allow_html=True)
 
@@ -195,25 +272,26 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown('<div class="metric-label">AI Probability</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-value">{ai_prob:.2%}</div>', unsafe_allow_html=True)
-
 with col2:
     st.markdown('<div class="metric-label">Human Probability</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-value">{human_prob:.2%}</div>', unsafe_allow_html=True)
 
-if confidence:
-    if confidence == "HIGH":
-        st.markdown('<div class="confidence-high">HIGH CONFIDENCE</div>', unsafe_allow_html=True)
-    elif confidence == "MEDIUM":
-        st.markdown('<div class="confidence-medium">MEDIUM CONFIDENCE</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="confidence-low">LOW CONFIDENCE</div>', unsafe_allow_html=True)
+# AI probability progress bar
+st.progress(min(float(ai_prob), 1.0))
+
+# Confidence badge
+if confidence == "HIGH":
+    st.markdown('<div class="confidence-high">HIGH CONFIDENCE</div>', unsafe_allow_html=True)
+elif confidence == "MEDIUM":
+    st.markdown('<div class="confidence-medium">MEDIUM CONFIDENCE</div>', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="confidence-low">LOW CONFIDENCE</div>', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------------------------
-# Model predictions card
+# Model predictions
 # --------------------------------------------------------------------
-models = result.get("models", {})
 if models:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="metric-label">Model Predictions</div>', unsafe_allow_html=True)
@@ -221,7 +299,8 @@ if models:
     for model_name, prob in models.items():
         pct = f"{prob:.2%}"
         st.markdown(
-            f'<div><span class="model-name">{model_name}</span><span class="model-prob">{pct}</span></div>',
+            f'<div><span class="model-name">{model_name}</span> '
+            f'<span class="model-prob" style="float:right;">{pct}</span></div>',
             unsafe_allow_html=True,
         )
         st.progress(min(float(prob), 1.0))
@@ -231,8 +310,7 @@ if models:
 # --------------------------------------------------------------------
 # Signals and colours
 # --------------------------------------------------------------------
-signals = result.get("signals", [])
-colors = result.get("dominant_colors", [])
+colors = extract_dominant_colors(image)
 
 if signals or colors:
     st.markdown('<div class="card">', unsafe_allow_html=True)
