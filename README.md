@@ -16,6 +16,12 @@ Built with **FastAPI**, **PyTorch**, **Hugging Face Transformers**, and **Pillow
 
 ---
 
+## 🌐 Live Demo
+
+Try the app live: [AI Image Authenticity Detector on Streamlit](https://syedhissamkazmi-ai-image-detector.streamlit.app)
+
+---
+
 ## 📚 Table of Contents
 
 - [Overview](#overview)
@@ -352,12 +358,12 @@ ai-image-detector/
 ├── uploads/
 ├── logs/
 ├── requirements.txt
-├──.dockerignore
-├── LICENSE 
-├── README.md
-├── run.py
 ├── requirements-dev.txt
 ├── Dockerfile
+├── .dockerignore
+├── LICENSE
+├── run.py
+├── streamlit_app.py
 └── README.md
 ```
 ---
